@@ -11,7 +11,7 @@ services:
     runtime: node
     plan: free
     rootDir: solution-2-fullstack/server
-    buildCommand: npm install && npm run build && cp -r src/db/schema.sql dist/db/
+    buildCommand: npm install --include=dev && npm run build && cp -r src/db/schema.sql dist/db/
     startCommand: node dist/index.js
     healthCheckPath: /api/health
     envVars:
