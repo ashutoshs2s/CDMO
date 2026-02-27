@@ -30,7 +30,6 @@ services:
   - type: web
     name: cdmo-frontend
     runtime: static
-    plan: free
     rootDir: solution-2-fullstack/client
     buildCommand: npm install && npm run build
     staticPublishPath: dist
