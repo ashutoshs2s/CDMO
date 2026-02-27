@@ -30,7 +30,7 @@ app.use('/api/companies', companiesRouter);
 if (process.env.NODE_ENV === 'production') {
   const clientDist = join(__dirname, '../../client/dist');
   app.use(express.static(clientDist));
-  app.get('*', (_req, res) => {
+  app.use((_req, res) => {
     res.sendFile(join(clientDist, 'index.html'));
   });
 }
