@@ -21,6 +21,17 @@ export function CompanyInput({ companyName, onNameChange, onSave, onReset, onImp
   const [showAnalysis, setShowAnalysis] = useState(false);
 
   const handleAnalyze = () => {
+    // Auto-derive company name from URL if not provided
+    if (!companyName.trim() && websiteUrl.trim()) {
+      try {
+        const hostname = new URL(websiteUrl.trim()).hostname;
+        const derived = hostname.replace(/^www\./, '').split('.')[0];
+        const capitalized = derived.charAt(0).toUpperCase() + derived.slice(1);
+        onNameChange(capitalized);
+      } catch {
+        // URL parsing failed, let the server handle it
+      }
+    }
     onAnalyze(websiteUrl || undefined);
     setShowAnalysis(true);
   };
@@ -73,7 +84,7 @@ export function CompanyInput({ companyName, onNameChange, onSave, onReset, onImp
           <span className="text-sm font-semibold whitespace-nowrap">AI Analysis</span>
         </div>
         <input
-          type="url"
+          type="text"
           value={websiteUrl}
           onChange={e => setWebsiteUrl(e.target.value)}
           placeholder="Company website URL (optional — AI will search if blank)"

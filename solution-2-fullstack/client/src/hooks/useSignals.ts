@@ -3,7 +3,13 @@ import type { SignalState, SignalStates, SavedCompany, ExampleScenario } from '.
 import { createEmptyStates, triangulate } from '../lib/scoring';
 import { loadCompanies, saveCompany, updateCompany, deleteCompany } from '../lib/storage';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+function getApiBase(): string {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  // In production, call the API server directly (static site rewrites don't reliably proxy POST)
+  if (import.meta.env.PROD) return 'https://cdmo-api.onrender.com';
+  return '';
+}
+const API_BASE = getApiBase();
 
 export interface AnalysisResult {
   companyName: string;
