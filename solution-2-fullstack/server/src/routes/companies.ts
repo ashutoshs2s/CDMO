@@ -2,8 +2,27 @@ import { Router } from 'express';
 import pool from '../db/connection.js';
 import { triangulate, ALL_SIGNAL_IDS } from '../services/scoring-engine.js';
 import type { SignalState } from '../services/scoring-engine.js';
+import { analyzeCompany } from '../services/website-analyzer.js';
 
 const router = Router();
+
+// Analyze company website with AI
+router.post('/analyze', async (req, res) => {
+  const { companyName, websiteUrl } = req.body as { companyName: string; websiteUrl?: string };
+  if (!companyName?.trim()) {
+    res.status(400).json({ error: 'Company name is required' });
+    return;
+  }
+
+  try {
+    const result = await analyzeCompany({ companyName: companyName.trim(), websiteUrl: websiteUrl?.trim() });
+    res.json(result);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Analysis failed';
+    console.error('Analysis error:', err);
+    res.status(500).json({ error: message });
+  }
+});
 
 // List all companies with latest scores
 router.get('/', async (_req, res) => {

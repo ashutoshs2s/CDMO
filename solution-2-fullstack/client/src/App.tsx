@@ -61,6 +61,10 @@ function App() {
                 onImportJSON={s.importJSON}
                 onExportJSON={s.exportJSON}
                 isSaved={!!s.selectedId}
+                onAnalyze={s.analyzeWebsite}
+                analyzing={s.analyzing}
+                analysisError={s.analysisError}
+                analysisResult={s.analysisResult}
               />
             </div>
 

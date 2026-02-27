@@ -25,6 +25,8 @@ services:
         value: https://cdmo-frontend.onrender.com
       - key: PORT
         value: 3001
+      - key: ANTHROPIC_API_KEY
+        sync: false
 
 staticSites:
   # React frontend

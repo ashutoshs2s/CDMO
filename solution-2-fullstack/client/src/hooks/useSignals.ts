@@ -3,12 +3,25 @@ import type { SignalState, SignalStates, SavedCompany, ExampleScenario } from '.
 import { createEmptyStates, triangulate } from '../lib/scoring';
 import { loadCompanies, saveCompany, updateCompany, deleteCompany } from '../lib/storage';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
+export interface AnalysisResult {
+  companyName: string;
+  signals: Record<string, SignalState>;
+  reasoning: Record<string, string>;
+  summary: string;
+  websiteUrl: string;
+}
+
 export function useSignals() {
   const [companyName, setCompanyName] = useState('');
   const [signals, setSignals] = useState<SignalStates>(createEmptyStates);
   const [companies, setCompanies] = useState<SavedCompany[]>(loadCompanies);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
 
   const scoring = triangulate(signals);
 
@@ -116,6 +129,45 @@ export function useSignals() {
     setCompanies(all);
   }, []);
 
+  const analyzeWebsite = useCallback(async (websiteUrl?: string) => {
+    if (!companyName.trim() && !websiteUrl?.trim()) return;
+    setAnalyzing(true);
+    setAnalysisError(null);
+    setAnalysisResult(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/companies/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyName: companyName.trim(), websiteUrl: websiteUrl?.trim() }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Analysis failed' }));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+
+      const result: AnalysisResult = await res.json();
+
+      // Apply detected signals
+      const fresh = createEmptyStates();
+      for (const [id, val] of Object.entries(result.signals)) {
+        if (id in fresh && (val === 'present' || val === 'inferred')) {
+          fresh[id] = val;
+        }
+      }
+      setSignals(fresh);
+      if (result.companyName) setCompanyName(result.companyName);
+      setSelectedId(null);
+      setAnalysisResult(result);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Analysis failed';
+      setAnalysisError(message);
+    } finally {
+      setAnalyzing(false);
+    }
+  }, [companyName]);
+
   return {
     companyName, setCompanyName,
     signals, setSignal, scoring,
@@ -123,5 +175,6 @@ export function useSignals() {
     compareIds, toggleCompare,
     save, reset, selectCompany, removeCompany,
     loadExample, importJSON, exportJSON, batchImport,
+    analyzeWebsite, analyzing, analysisError, analysisResult,
   };
 }
