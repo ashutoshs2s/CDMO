@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CDMO Signal Triangulation Dashboard</title>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2b6cb0;
+  --accent: #319795;
+  --need-color: #3182ce;
+  --timing-color: #d69e2e;
+  --behavior-color: #805ad5;
+  --high: #38a169;
+  --med-high: #319795;
+  --medium: #d69e2e;
+  --low: #a0aec0;
+  --bg: #f7fafc;
+  --card-bg: #ffffff;
+  --text: #1a202c;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-lg: 0 4px 14px rgba(0,0,0,0.1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+.app { max-width: 1360px; margin: 0 auto; padding: 24px; }
+
+/* --- Header --- */
+header {
+  text-align: center;
+  padding: 32px 0 24px;
+}
+header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: -0.5px;
+}
+header p {
+  color: var(--text-muted);
+  font-size: 15px;
+  margin-top: 6px;
+}
+
+/* --- Company Bar --- */
+.company-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  box-shadow: var(--shadow);
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.company-bar input[type="text"] {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.company-bar input[type="text"]:focus { border-color: var(--primary-light); }
+.company-bar input[type="file"] { display: none; }
+
+.btn {
+  padding: 9px 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn:hover { background: #edf2f7; border-color: #cbd5e0; }
+.btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.btn-primary:hover { background: var(--primary-light); }
+.btn-danger { color: #e53e3e; }
+.btn-danger:hover { background: #fff5f5; border-color: #fc8181; }
+
+/* --- Score Overview --- */
+.score-overview {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1.3fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.score-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s;
+}
+.score-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.score-card h3 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+/* SVG Gauge */
+.gauge-wrap { position: relative; width: 100px; height: 100px; margin: 0 auto 8px; }
+.gauge-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.gauge-bg { fill: none; stroke: #e2e8f0; stroke-width: 3; }
+.gauge-fill {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.6s ease;
+}
+.gauge-text {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 22px;
+  font-weight: 700;
+}
+.score-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  display: block;
+}
+.score-strength {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.strength-strong { background: #c6f6d5; color: #276749; }
+.strength-confirmed { background: #bee3f8; color: #2a4365; }
+.strength-moderate { background: #fefcbf; color: #744210; }
+.strength-weak { background: #fed7d7; color: #9b2c2c; }
+.strength-none { background: #edf2f7; color: #a0aec0; }
+
+/* Overall Score Card */
+.overall-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.intent-badge {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  transition: all 0.5s ease;
+  border: 4px solid;
+}
+.intent-badge .intent-level {
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.intent-badge .intent-sublabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+}
+.intent-high { background: #f0fff4; border-color: var(--high); color: var(--high); }
+.intent-medium-high { background: #e6fffa; border-color: var(--med-high); color: var(--med-high); }
+.intent-medium { background: #fffff0; border-color: var(--medium); color: var(--medium); }
+.intent-low { background: #f7fafc; border-color: var(--low); color: var(--low); }
+
+.total-score {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* --- Signals Grid --- */
+.signals-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+.signal-column h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.signal-column .col-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.col-need h2 { color: var(--need-color); }
+.col-timing h2 { color: var(--timing-color); }
+.col-behavior h2 { color: var(--behavior-color); }
+
+.signal-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow);
+  transition: border-color 0.2s;
+}
+.signal-card.state-present { border-left: 3px solid #48bb78; }
+.signal-card.state-inferred { border-left: 3px solid #ecc94b; }
+.signal-card.state-absent { border-left: 3px solid transparent; }
+
+.signal-card .signal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.signal-card .signal-num {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 20px;
+}
+.signal-card .signal-name {
+  font-size: 14px;
+  font-weight: 600;
+  flex: 1;
+}
+.signal-card .signal-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  padding-left: 20px;
+}
+.signal-card .signal-sources {
+  font-size: 11px;
+  color: #a0aec0;
+  padding-left: 20px;
+  cursor: help;
+}
+
+/* Toggle */
+.signal-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 11px;
+}
+.signal-toggle button {
+  padding: 4px 10px;
+  border: none;
+  background: var(--card-bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.15s;
+  border-right: 1px solid var(--border);
+}
+.signal-toggle button:last-child { border-right: none; }
+.signal-toggle button:hover { background: #edf2f7; }
+.signal-toggle button.active-absent { background: #edf2f7; color: var(--text); }
+.signal-toggle button.active-inferred { background: #fefcbf; color: #975a16; }
+.signal-toggle button.active-present { background: #c6f6d5; color: #276749; }
+
+/* --- Examples --- */
+.examples-section {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  box-shadow: var(--shadow);
+  margin-bottom: 28px;
+}
+.examples-section h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  color: var(--primary);
+}
+.example-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+.example-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.example-card:hover { border-color: var(--primary-light); background: #ebf8ff; }
+.example-card .ex-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.example-card .ex-signals {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.example-card .ex-result {
+  font-size: 12px;
+  font-weight: 600;
+}
+.ex-high { color: var(--high); }
+.ex-med-high { color: var(--med-high); }
+.ex-medium { color: var(--medium); }
+.ex-low { color: var(--low); }
+
+/* --- Method Reference --- */
+.method-section {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  box-shadow: var(--shadow);
+  margin-bottom: 28px;
+}
+.method-section h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  color: var(--primary);
+}
+.method-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 10px;
+}
+.method-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+}
+.method-card .method-name {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.method-card .method-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* --- Footer --- */
+footer {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-muted);
+  font-size: 12px;
+  border-top: 1px solid var(--border);
+}
+footer strong { color: var(--primary); }
+
+/* --- Responsive --- */
+@media (max-width: 1024px) {
+  .signals-grid { grid-template-columns: 1fr; }
+  .score-overview { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 640px) {
+  .app { padding: 12px; }
+  .score-overview { grid-template-columns: 1fr; }
+  .company-bar { flex-direction: column; }
+  .company-bar input[type="text"] { min-width: unset; width: 100%; }
+  header h1 { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>CDMO Signal Triangulation Dashboard</h1>
+    <p>Score companies across 18 intent signals to identify high-potential CDMO outsourcing prospects</p>
+  </header>
+
+  <div class="company-bar">
+    <input type="text" id="companyName" placeholder="Enter company name (e.g., Acme Therapeutics)">
+    <button class="btn btn-primary" id="importBtn">Import JSON</button>
+    <button class="btn" id="exportBtn">Export JSON</button>
+    <button class="btn btn-danger" id="resetBtn">Reset All</button>
+    <input type="file" id="fileInput" accept=".json">
+  </div>
+
+  <div class="score-overview" id="scoreOverview"></div>
+
+  <div class="signals-grid" id="signalsGrid"></div>
+
+  <div class="examples-section">
+    <h2>Example Scenarios</h2>
+    <div class="example-grid" id="exampleGrid"></div>
+  </div>
+
+  <div class="method-section">
+    <h2>AI Sourcing Methods</h2>
+    <div class="method-grid" id="methodGrid"></div>
+  </div>
+
+  <footer>
+    <strong>Solution 1 of 3</strong> &mdash; Static Dashboard &bull; Manual signal entry with client-side scoring &bull; No backend required
+  </footer>
+</div>
+
+<script>
+// ─── Signal Definitions ──────────────────────────────────────────────
+const SIGNALS = {
+  need: [
+    { id: 'virtual_biotech', num: 1, name: 'Virtual Biotech Model',
+      desc: 'No manufacturing footprint — must outsource all production',
+      sources: 'Company websites, LinkedIn headcount, SEC filings' },
+    { id: 'complex_modality', num: 2, name: 'Complex Modality',
+      desc: 'Cell/gene therapy, ADCs, mRNA — requires specialized CDMO capabilities',
+      sources: 'Pipeline NLP, ClinicalTrials.gov, SEC filings' },
+    { id: 'pipeline_depth', num: 3, name: 'Pipeline Depth Exceeding Capacity',
+      desc: 'Multiple candidates advancing simultaneously beyond internal capacity',
+      sources: 'ClinicalTrials.gov active trial count, facility data' },
+    { id: 'geographic_expansion', num: 4, name: 'Geographic Expansion',
+      desc: 'EU/Asia expansion without regional manufacturing presence',
+      sources: 'EMA submissions, press releases, regional job postings' },
+    { id: 'platform_technology', num: 5, name: 'Platform Technology',
+      desc: 'One platform spawning multiple assets — creates capacity crunch',
+      sources: 'SEC filings, investor presentations, company descriptions' },
+    { id: 'post_acquisition', num: 6, name: 'Post-Acquisition Integration',
+      desc: 'M&A triggers manufacturing strategy re-evaluation',
+      sources: 'News monitoring, SEC 8-K filings, LinkedIn integration roles' }
+  ],
+  timing: [
+    { id: 'phase1_transition', num: 7, name: 'Pre-Clinical → Phase 1 Transition',
+      desc: 'CDMO selection typically happens at this inflection point',
+      sources: 'ClinicalTrials.gov Phase 1 registrations, IND filings' },
+    { id: 'cmc_work', num: 8, name: 'CMC Work Underway',
+      desc: 'Process development/CMC activity signals imminent manufacturing decisions',
+      sources: 'CMC job postings, process development press releases' },
+    { id: 'supply_timelines', num: 9, name: 'Clinical Supply Timelines Announced',
+      desc: 'Hard deadlines create urgency for CDMO engagement',
+      sources: 'Earnings call NLP, press releases with trial start dates' },
+    { id: 'regulatory_presub', num: 10, name: 'Regulatory Pre-Submission Activity',
+      desc: 'Manufacturing plans being finalized for FDA/EMA submissions',
+      sources: 'Press releases mentioning Type B meetings, pre-IND meetings' },
+    { id: 'contract_renewal', num: 11, name: 'CDMO Contract Approaching Renewal',
+      desc: 'Existing contract expiry creates rebid or expansion opportunity',
+      sources: 'Historical deal dates (3–5 yr cycles), contract news' },
+    { id: 'recent_funding', num: 12, name: 'Recent Funding for Clinical Advancement',
+      desc: 'Capital earmarked for manufacturing partnerships or CMC work',
+      sources: 'Crunchbase/PitchBook alerts, use-of-proceeds NLP' }
+  ],
+  behavior: [
+    { id: 'tech_transfer_roles', num: 13, name: 'Tech Transfer / External Mfg Roles',
+      desc: 'Job postings for tech transfer or external manufacturing — active CDMO engagement',
+      sources: 'LinkedIn/Indeed scraping for CDMO-related titles' },
+    { id: 'cmc_leadership_hired', num: 14, name: 'CMC / Supply Chain Leadership Hired',
+      desc: 'New decision-maker onboarded — open to new conversations',
+      sources: 'LinkedIn job change monitoring for CMC/Supply Chain VP+' },
+    { id: 'conference_attendance', num: 15, name: 'CDMO Event Attendance',
+      desc: 'Registered for or attended CPhI, DCAT, Bio partnering events',
+      sources: 'Conference attendee lists, speaker agendas, partnering tools' },
+    { id: 'competitor_cdmo_deal', num: 16, name: 'Competitor Announced CDMO Deal',
+      desc: 'Similar-profile company partnered with CDMO — creates urgency',
+      sources: 'News monitoring filtered by modality and stage' },
+    { id: 'linkedin_activity', num: 17, name: 'Executive LinkedIn Activity on CDMO',
+      desc: 'Key decision-makers engaging with CDMO-related content',
+      sources: 'LinkedIn API / manual monitoring for likes, comments, shares' },
+    { id: 'earnings_mfg_mention', num: 18, name: 'Earnings Call Mentions Mfg Strategy',
+      desc: 'Manufacturing, outsourcing, or capacity discussed in investor communications',
+      sources: 'Earnings call transcript NLP for manufacturing keywords' }
+  ]
+};
+
+const CATEGORY_META = {
+  need:     { label: 'Need Signals', subtitle: 'Do they have a reason to outsource?', color: 'var(--need-color)' },
+  timing:   { label: 'Timing Signals', subtitle: 'Are they at a decision point now?', color: 'var(--timing-color)' },
+  behavior: { label: 'Behavior Proxies', subtitle: 'Are they actively looking?', color: 'var(--behavior-color)' }
+};
+
+const EXAMPLES = [
+  {
+    title: 'Virtual Biotech — Phase 1 Filing',
+    description: 'Virtual biotech + Phase 1 filing + tech transfer role posted',
+    result: 'high',
+    company: 'NovaCure Therapeutics',
+    signals: {
+      virtual_biotech: 'present', complex_modality: 'present', platform_technology: 'inferred',
+      phase1_transition: 'present', cmc_work: 'inferred',
+      tech_transfer_roles: 'present', conference_attendance: 'inferred'
+    }
+  },
+  {
+    title: 'Gene Therapy — Series B Funded',
+    description: 'Gene therapy company + Series B + CMC VP hired',
+    result: 'high',
+    company: 'GenVec Biologics',
+    signals: {
+      complex_modality: 'present', virtual_biotech: 'present', pipeline_depth: 'inferred',
+      recent_funding: 'present', phase1_transition: 'inferred', cmc_work: 'present',
+      cmc_leadership_hired: 'present', conference_attendance: 'present'
+    }
+  },
+  {
+    title: 'Mid-Size Biotech — Competitor Deal',
+    description: 'Mid-size biotech + competitor CDMO deal + supply chain role open',
+    result: 'medium-high',
+    company: 'Meridian Bio',
+    signals: {
+      pipeline_depth: 'present', complex_modality: 'inferred',
+      supply_timelines: 'inferred',
+      competitor_cdmo_deal: 'present', tech_transfer_roles: 'present'
+    }
+  },
+  {
+    title: 'Large Pharma — Late Stage',
+    description: 'Large pharma + late-stage + no job postings + existing CDMO',
+    result: 'low',
+    company: 'GlobalPharm Inc.',
+    signals: {
+      contract_renewal: 'inferred'
+    }
+  }
+];
+
+const METHODS = [
+  { name: 'Web Scraping + NLP', desc: 'Company websites, press releases, SEC filings → Need 1–6, Timing 7–12' },
+  { name: 'ClinicalTrials.gov API', desc: 'Trial registrations, phase transitions → Need 2–3, Timing 7, 9' },
+  { name: 'SEC EDGAR API', desc: '10-K, S-1, 8-K filings for manufacturing mentions → Need 1, 5, 6, Timing 12' },
+  { name: 'Job Board Scraping', desc: 'LinkedIn/Indeed hiring patterns → Timing 8, Behavior 13–14' },
+  { name: 'News Monitoring', desc: 'Funding, M&A, partnerships, regulatory → Need 6, Timing 10–12, Behavior 16' },
+  { name: 'Earnings Call NLP', desc: 'Manufacturing-related commentary extraction → Timing 9, Behavior 18' },
+  { name: 'LinkedIn Activity Monitor', desc: 'Decision-maker engagement patterns → Behavior 14, 17' },
+  { name: 'Conference Data Aggregation', desc: 'Attendee lists, speaker agendas, partnering → Behavior 15' }
+];
+
+// ─── State ───────────────────────────────────────────────────────────
+const state = {};
+function initState() {
+  for (const cat of Object.keys(SIGNALS)) {
+    for (const sig of SIGNALS[cat]) {
+      state[sig.id] = 'absent';
+    }
+  }
+}
+initState();
+
+// ─── Scoring Engine ──────────────────────────────────────────────────
+function calcCategoryScore(category) {
+  return SIGNALS[category].reduce((sum, sig) => {
+    if (state[sig.id] === 'present') return sum + 1;
+    if (state[sig.id] === 'inferred') return sum + 0.5;
+    return sum;
+  }, 0);
+}
+
+function getCategoryStrength(score) {
+  if (score >= 3) return 'strong';
+  if (score >= 1.5) return 'confirmed';
+  if (score >= 0.5) return 'moderate';
+  if (score > 0) return 'weak';
+  return 'none';
+}
+
+function triangulate() {
+  const scores = {
+    need: calcCategoryScore('need'),
+    timing: calcCategoryScore('timing'),
+    behavior: calcCategoryScore('behavior')
+  };
+
+  const strengths = {
+    need: getCategoryStrength(scores.need),
+    timing: getCategoryStrength(scores.timing),
+    behavior: getCategoryStrength(scores.behavior)
+  };
+
+  const vals = Object.values(strengths);
+  const confirmedPlus = vals.filter(s => s === 'strong' || s === 'confirmed').length;
+  const moderatePlus = vals.filter(s => s !== 'none' && s !== 'weak').length;
+  const anyEvidence = vals.filter(s => s !== 'none').length;
+
+  let intent;
+  if (confirmedPlus === 3) intent = 'high';
+  else if (confirmedPlus >= 2 && anyEvidence === 3) intent = 'high';
+  else if (confirmedPlus >= 2) intent = 'medium-high';
+  else if (confirmedPlus >= 1 && moderatePlus >= 2) intent = 'medium-high';
+  else if (confirmedPlus >= 1 || moderatePlus >= 2) intent = 'medium';
+  else if (anyEvidence >= 1) intent = 'medium';
+  else intent = 'low';
+
+  const total = scores.need + scores.timing + scores.behavior;
+  return { scores, strengths, intent, total };
+}
+
+// ─── Rendering ───────────────────────────────────────────────────────
+function renderScoreOverview() {
+  const { scores, strengths, intent, total } = triangulate();
+  const overview = document.getElementById('scoreOverview');
+  const cats = ['need', 'timing', 'behavior'];
+  const catColors = { need: 'var(--need-color)', timing: 'var(--timing-color)', behavior: 'var(--behavior-color)' };
+
+  let html = '';
+  for (const cat of cats) {
+    const pct = Math.round((scores[cat] / 6) * 100);
+    const dashLen = (pct / 100) * 100;
+    const str = strengths[cat];
+    const strClass = str === 'strong' ? 'strength-strong' :
+                     str === 'confirmed' ? 'strength-confirmed' :
+                     str === 'moderate' ? 'strength-moderate' :
+                     str === 'weak' ? 'strength-weak' : 'strength-none';
+    html += `
+      <div class="score-card">
+        <h3>${CATEGORY_META[cat].label}</h3>
+        <div class="gauge-wrap">
+          <svg viewBox="0 0 36 36">
+            <circle class="gauge-bg" cx="18" cy="18" r="15.9" stroke-dasharray="100, 100" />
+            <circle class="gauge-fill" cx="18" cy="18" r="15.9"
+              style="stroke:${catColors[cat]}; stroke-dasharray:${dashLen}, 100;"
+              transform="rotate(-90 18 18)" />
+          </svg>
+          <span class="gauge-text" style="color:${catColors[cat]}">${pct}%</span>
+        </div>
+        <span class="score-label">${scores[cat]} / 6 signals</span>
+        <div><span class="score-strength ${strClass}">${str}</span></div>
+      </div>`;
+  }
+
+  const intentClass = intent === 'high' ? 'intent-high' :
+                      intent === 'medium-high' ? 'intent-medium-high' :
+                      intent === 'medium' ? 'intent-medium' : 'intent-low';
+  const intentLabel = intent === 'medium-high' ? 'Med-High' : intent.charAt(0).toUpperCase() + intent.slice(1);
+
+  html += `
+    <div class="score-card overall-card">
+      <h3>Triangulated Intent</h3>
+      <div class="intent-badge ${intentClass}">
+        <span class="intent-level">${intentLabel}</span>
+        <span class="intent-sublabel">Intent</span>
+      </div>
+      <span class="total-score">${total} / 18 total signal score</span>
+    </div>`;
+
+  overview.innerHTML = html;
+}
+
+function renderSignals() {
+  const grid = document.getElementById('signalsGrid');
+  let html = '';
+
+  for (const cat of Object.keys(SIGNALS)) {
+    const colClass = cat === 'need' ? 'col-need' : cat === 'timing' ? 'col-timing' : 'col-behavior';
+    html += `<div class="signal-column ${colClass}">`;
+    html += `<h2>${CATEGORY_META[cat].label}</h2>`;
+    html += `<p class="col-subtitle">${CATEGORY_META[cat].subtitle}</p>`;
+
+    for (const sig of SIGNALS[cat]) {
+      const st = state[sig.id];
+      const stateClass = st === 'present' ? 'state-present' : st === 'inferred' ? 'state-inferred' : 'state-absent';
+      html += `
+        <div class="signal-card ${stateClass}" data-signal="${sig.id}">
+          <div class="signal-header">
+            <span class="signal-num">#${sig.num}</span>
+            <span class="signal-name">${sig.name}</span>
+            <div class="signal-toggle">
+              <button data-value="absent" class="${st === 'absent' ? 'active-absent' : ''}"
+                onclick="setSignal('${sig.id}','absent')">Absent</button>
+              <button data-value="inferred" class="${st === 'inferred' ? 'active-inferred' : ''}"
+                onclick="setSignal('${sig.id}','inferred')">Inferred</button>
+              <button data-value="present" class="${st === 'present' ? 'active-present' : ''}"
+                onclick="setSignal('${sig.id}','present')">Present</button>
+            </div>
+          </div>
+          <div class="signal-desc">${sig.desc}</div>
+          <div class="signal-sources" title="AI sourcing methods">AI: ${sig.sources}</div>
+        </div>`;
+    }
+    html += '</div>';
+  }
+  grid.innerHTML = html;
+}
+
+function renderExamples() {
+  const grid = document.getElementById('exampleGrid');
+  grid.innerHTML = EXAMPLES.map((ex, i) => {
+    const cls = ex.result === 'high' ? 'ex-high' :
+                ex.result === 'medium-high' ? 'ex-med-high' :
+                ex.result === 'medium' ? 'ex-medium' : 'ex-low';
+    const label = ex.result === 'medium-high' ? 'Medium-High Intent' :
+                  ex.result.charAt(0).toUpperCase() + ex.result.slice(1) + ' Intent';
+    return `
+      <div class="example-card" onclick="loadExample(${i})">
+        <div class="ex-title">${ex.title}</div>
+        <div class="ex-signals">${ex.description}</div>
+        <div class="ex-result ${cls}">→ ${label}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderMethods() {
+  const grid = document.getElementById('methodGrid');
+  grid.innerHTML = METHODS.map(m => `
+    <div class="method-card">
+      <div class="method-name">${m.name}</div>
+      <div class="method-desc">${m.desc}</div>
+    </div>`).join('');
+}
+
+// ─── Actions ─────────────────────────────────────────────────────────
+function setSignal(id, value) {
+  state[id] = value;
+  renderSignals();
+  renderScoreOverview();
+}
+
+function loadExample(index) {
+  const ex = EXAMPLES[index];
+  initState();
+  for (const [id, val] of Object.entries(ex.signals)) {
+    state[id] = val;
+  }
+  document.getElementById('companyName').value = ex.company;
+  renderSignals();
+  renderScoreOverview();
+}
+
+function resetAll() {
+  initState();
+  document.getElementById('companyName').value = '';
+  renderSignals();
+  renderScoreOverview();
+}
+
+function exportJSON() {
+  const company = document.getElementById('companyName').value || 'Unnamed';
+  const result = triangulate();
+  const data = {
+    company,
+    signals: { ...state },
+    scores: result.scores,
+    strengths: result.strengths,
+    intent: result.intent,
+    totalScore: result.total,
+    exportedAt: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `cdmo-signals-${company.replace(/\s+/g, '-').toLowerCase()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importJSON(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.signals) {
+        initState();
+        for (const [id, val] of Object.entries(data.signals)) {
+          if (state.hasOwnProperty(id) && ['absent', 'inferred', 'present'].includes(val)) {
+            state[id] = val;
+          }
+        }
+      }
+      if (data.company) document.getElementById('companyName').value = data.company;
+      renderSignals();
+      renderScoreOverview();
+    } catch (err) {
+      alert('Invalid JSON file. Please check the format.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ─── Event Listeners ─────────────────────────────────────────────────
+document.getElementById('resetBtn').addEventListener('click', resetAll);
+document.getElementById('exportBtn').addEventListener('click', exportJSON);
+document.getElementById('importBtn').addEventListener('click', () => {
+  document.getElementById('fileInput').click();
+});
+document.getElementById('fileInput').addEventListener('change', (e) => {
+  if (e.target.files[0]) importJSON(e.target.files[0]);
+  e.target.value = '';
+});
+
+// ─── Init ────────────────────────────────────────────────────────────
+renderScoreOverview();
+renderSignals();
+renderExamples();
+renderMethods();
+</script>
+</body>
+</html>
