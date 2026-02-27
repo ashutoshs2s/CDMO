@@ -22,7 +22,7 @@ services:
           name: cdmo-db
           property: connectionString
       - key: CORS_ORIGIN
-        value: https://cdmo-frontend.onrender.com
+        value: https://cdmo-frontend.onrender.com,https://cdmo.datastacksignal.com
       - key: PORT
         value: 3001
       - key: ANTHROPIC_API_KEY
@@ -34,6 +34,9 @@ staticSites:
     rootDir: solution-2-fullstack/client
     buildCommand: npm install && npm run build
     staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://cdmo-api.onrender.com
     headers:
       - path: /*
         name: Cache-Control
