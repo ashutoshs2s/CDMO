@@ -36,7 +36,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Auto-migrate on startup
-async function start() {
+async function migrate() {
   try {
     const schema = readFileSync(join(__dirname, 'db/schema.sql'), 'utf-8');
     await pool.query(schema);
@@ -44,10 +44,9 @@ async function start() {
   } catch (err) {
     console.error('DB migration warning:', err);
   }
-
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
 }
 
-start();
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  migrate();
+});
