@@ -31,7 +31,7 @@ services:
     name: cdmo-frontend
     runtime: static
     rootDir: solution-2-fullstack/client
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     staticPublishPath: dist
     headers:
       - path: /*
