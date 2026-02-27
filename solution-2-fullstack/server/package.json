@@ -10,16 +10,16 @@
     "db:migrate": "tsx src/db/migrate.ts"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "pg": "^8.16.0"
-  },
-  "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.2",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.15.4",
-    "tsx": "^4.20.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "pg": "^8.16.0",
     "typescript": "~5.9.3"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0"
   }
 }

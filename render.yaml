@@ -11,7 +11,7 @@ services:
     runtime: node
     plan: free
     rootDir: solution-2-fullstack/server
-    buildCommand: NODE_ENV=development npm install && npm run build && cp -r src/db/schema.sql dist/db/
+    buildCommand: npm install && npm run build && cp -r src/db/schema.sql dist/db/
     startCommand: node dist/index.js
     healthCheckPath: /api/health
     envVars:
@@ -31,7 +31,7 @@ services:
     name: cdmo-frontend
     runtime: static
     rootDir: solution-2-fullstack/client
-    buildCommand: NODE_ENV=development npm install && npm run build
+    buildCommand: npm install && npm run build
     staticPublishPath: dist
     headers:
       - path: /*
